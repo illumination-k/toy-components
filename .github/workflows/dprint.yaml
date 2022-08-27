@@ -1,0 +1,19 @@
+name: "Check JSON, TOML, YAML and Dockerfile format"
+
+on: [push]
+
+jobs:
+  dprint_check:
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install dprint
+        run: |
+          curl -fsSL https://dprint.dev/install.sh | sh -s "0.24.4" > /dev/null 2>&1
+          echo "/home/runner/.dprint/bin" >> "$GITHUB_PATH"
+
+      - name: Check dprint
+        run: dprint check
