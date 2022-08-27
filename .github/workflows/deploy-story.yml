@@ -13,6 +13,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16.14.2
+      - name: setup config
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
 
       - name: install yarn
         run: npm install --global yarn
