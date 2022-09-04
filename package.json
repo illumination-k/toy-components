@@ -22,12 +22,13 @@
     "typescript": "^4.8.2"
   },
   "dependencies": {
-    "@dnd-kit/core": "^6.0.5",
-    "@dnd-kit/sortable": "^7.0.1",
     "@headlessui/react": "^1.6.6",
     "@heroicons/react": "^1.0.6",
+    "konva": "^8.3.12",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-icons": "^4.4.0",
+    "react-konva": "^18.2.1",
     "twind": "^0.16.17"
   },
   "scripts": {

@@ -3,7 +3,7 @@ name: "Deploy storybook"
 on: [push]
 
 jobs:
-  lint_test:
+  deploy_storybook:
     runs-on: "ubuntu-latest"
 
     steps:
