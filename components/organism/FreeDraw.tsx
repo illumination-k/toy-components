@@ -63,6 +63,7 @@ const FreeDraw = ({ height = 1600, width = 2000 }: FreeDrawProps) => {
     if (!isDrawing.current) {
       return;
     }
+    e.target.preventDefault();
     const stage = e.target.getStage();
     const point = stage?.getPointerPosition();
     let lastLine = lines[lines.length - 1];
