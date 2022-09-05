@@ -5,7 +5,7 @@ import { Layer, Line, Stage } from "react-konva";
 import { apply, tw } from "twind";
 import IconButton from "../atoms/IconButton";
 
-import { BsDownload, BsFillEraserFill, BsFillPencilFill } from "react-icons/bs";
+import { BsArrowLeft, BsArrowRight, BsDownload, BsFillEraserFill, BsFillPencilFill } from "react-icons/bs";
 
 type Tool = "pen" | "eraser";
 
@@ -38,8 +38,7 @@ function downloadURI(uri: string, name: string) {
 }
 
 // https://konvajs.org/docs/react/Free_Drawing.html
-
-const FreeDraw = ({ height = 1600, width = 2000 }: FreeDrawProps) => {
+const FreeDraw = ({ height = 2000, width = 1600 }: FreeDrawProps) => {
   const [lineConfig, setLineConfig] = useState<LineConfig>({
     tool: "pen",
     color: "#000000",
@@ -47,6 +46,8 @@ const FreeDraw = ({ height = 1600, width = 2000 }: FreeDrawProps) => {
   });
 
   const [lines, setLines] = useState<LineProperty[]>([]);
+  const [history] = useState<LineProperty[]>([]);
+
   const isDrawing = useRef(false);
 
   // https://github.com/konvajs/react-konva/blob/950925060d5fd9cca748f570f8edc9f5f3cbfb91/src/ReactKonvaCore.tsx#L45-L49
@@ -64,6 +65,7 @@ const FreeDraw = ({ height = 1600, width = 2000 }: FreeDrawProps) => {
       return;
     }
 
+    // prevent scrolling on touch devices
     // https://konvajs.org/docs/sandbox/Free_Drawing.html
     e.evt.preventDefault();
     const stage = e.target.getStage();
@@ -79,7 +81,24 @@ const FreeDraw = ({ height = 1600, width = 2000 }: FreeDrawProps) => {
 
   const handleStop = () => {
     isDrawing.current = false;
-    // setHistory([]);
+    history.splice(0);
+  };
+
+  const undo = () => {
+    const line = lines.pop();
+
+    if (line) {
+      history.push(line);
+      setLines([...lines]);
+    }
+  };
+
+  const redo = () => {
+    const line = history.pop();
+
+    if (line) {
+      setLines([...lines, line]);
+    }
   };
 
   const pencilButtons = ["#000000", "#ff0000", "#0000ff"].map((color, key) => {
@@ -97,6 +116,7 @@ const FreeDraw = ({ height = 1600, width = 2000 }: FreeDrawProps) => {
   return (
     <div>
       {JSON.stringify(lineConfig)}
+      {JSON.stringify(history)}
       <div>
         {pencilButtons}
         <IconButton onClick={() => setLineConfig({ ...lineConfig, tool: "eraser" })}>
@@ -109,6 +129,12 @@ const FreeDraw = ({ height = 1600, width = 2000 }: FreeDrawProps) => {
           value={lineConfig.width}
           onChange={(e) => setLineConfig({ ...lineConfig, width: Number(e.target.value) })}
         />
+        <IconButton onClick={undo}>
+          <BsArrowLeft />
+        </IconButton>
+        <IconButton onClick={redo}>
+          <BsArrowRight />
+        </IconButton>
         <IconButton
           onClick={() => {
             const uri = stageRef.current?.toDataURL();
@@ -121,7 +147,6 @@ const FreeDraw = ({ height = 1600, width = 2000 }: FreeDrawProps) => {
         </IconButton>
       </div>
       <Stage
-        className={tw("ring ring-black")}
         ref={stageRef}
         width={width}
         height={height}
