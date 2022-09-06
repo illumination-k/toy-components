@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 
 import Konva from "konva";
 import { Layer, Line, Stage } from "react-konva";
-import { apply, tw } from "twind";
+import { tw } from "twind";
 import IconButton from "../atoms/IconButton";
 
 import { BsArrowLeft, BsArrowRight, BsDownload, BsFillEraserFill, BsFillPencilFill } from "react-icons/bs";
@@ -25,6 +25,7 @@ type LineProperty = {
 export type FreeDrawProps = {
   height?: number;
   width?: number;
+  layers?: (typeof Layer)[];
 };
 
 // function from https://stackoverflow.com/a/15832662/512042
@@ -38,7 +39,7 @@ function downloadURI(uri: string, name: string) {
 }
 
 // https://konvajs.org/docs/react/Free_Drawing.html
-const FreeDraw = ({ height = 2000, width = 1600 }: FreeDrawProps) => {
+const FreeDraw = ({ height, width, layers = [] }: FreeDrawProps) => {
   const [lineConfig, setLineConfig] = useState<LineConfig>({
     tool: "pen",
     color: "#000000",
@@ -47,6 +48,7 @@ const FreeDraw = ({ height = 2000, width = 1600 }: FreeDrawProps) => {
 
   const [lines, setLines] = useState<LineProperty[]>([]);
   const [history] = useState<LineProperty[]>([]);
+  const [size] = useState({ width: width || window.innerWidth, height: height || window.innerHeight });
 
   const isDrawing = useRef(false);
 
@@ -116,7 +118,6 @@ const FreeDraw = ({ height = 2000, width = 1600 }: FreeDrawProps) => {
   return (
     <div>
       {JSON.stringify(lineConfig)}
-      {JSON.stringify(history)}
       <div>
         {pencilButtons}
         <IconButton onClick={() => setLineConfig({ ...lineConfig, tool: "eraser" })}>
@@ -148,8 +149,8 @@ const FreeDraw = ({ height = 2000, width = 1600 }: FreeDrawProps) => {
       </div>
       <Stage
         ref={stageRef}
-        width={width}
-        height={height}
+        width={size.width}
+        height={size.height}
         onMouseDown={handleStart}
         onMousemove={handleMove}
         onMouseup={handleStop}
@@ -157,6 +158,7 @@ const FreeDraw = ({ height = 2000, width = 1600 }: FreeDrawProps) => {
         onTouchMove={handleMove}
         onTouchEnd={handleStop}
       >
+        {layers}
         <Layer>
           {lines.map((line, i) => (
             <Line

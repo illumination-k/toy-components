@@ -1,5 +1,6 @@
 import { ComponentMeta, ComponentStory } from "@storybook/react";
 import React from "react";
+import { Layer, Rect } from "react-konva";
 
 import FreeDraw from "./FreeDraw";
 
@@ -16,3 +17,6 @@ const Template: ComponentStory<typeof FreeDraw> = (args) => <FreeDraw {...args}>
 export const Default = Template.bind({});
 // More on args: https://storybook.js.org/docs/react/writing-stories/args
 Default.args = {};
+
+export const Background = Template.bind({});
+Background.args = {};
