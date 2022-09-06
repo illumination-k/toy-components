@@ -18,8 +18,9 @@ export const Default = Template.bind({});
 // More on args: https://storybook.js.org/docs/react/writing-stories/args
 Default.args = {
   options: [
-    { label: "1", value: "1" },
-    { label: "2", value: "2" },
+    { label: "one", value: "1" },
+    { label: "two", value: "2" },
+    { label: "apple", value: "apple" },
   ],
   onChange: (value) => console.log(value),
 };

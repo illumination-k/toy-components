@@ -32,7 +32,7 @@ const MultiCombobox = <T,>({
     if (query === "") {
       return !(selectedOptions.includes(option));
     } else {
-      option.label.toLocaleLowerCase().includes(query.toLowerCase())
+      return option.label.toLocaleLowerCase().includes(query.toLowerCase())
         && !(selectedOptions.includes(option));
     }
   });
