@@ -1,10 +1,9 @@
-# Toy Components for React app
+# Collection of Toy Components for React
 
 ## These components based on following
 
 - twind
 - headless-ui
-- dnd-kit
 
 ## Stories
 

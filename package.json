@@ -23,7 +23,6 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.6.6",
-    "@heroicons/react": "^1.0.6",
     "konva": "^8.3.12",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
