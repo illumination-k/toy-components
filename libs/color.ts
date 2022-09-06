@@ -1,3 +1,5 @@
+// refer to https://zenn.dev/mryhryki/articles/2020-11-12-hatena-background-color
+
 export default class Color {
   red: number;
   blue: number;
@@ -21,12 +23,24 @@ export default class Color {
     return new Color(red, blue, green);
   }
 
-  static WHITE() {
+  static get WHITE() {
     return new Color(255, 255, 255);
   }
 
-  static BLACK() {
+  static get BLACK() {
     return new Color(0, 0, 0);
+  }
+
+  static get RED() {
+    return new Color(255, 0, 0);
+  }
+
+  static get BLUE() {
+    return new Color(0, 255, 0);
+  }
+
+  static get GREEN() {
+    return new Color(0, 255, 255);
   }
 
   get hexColor() {
@@ -53,9 +67,9 @@ export default class Color {
   }
 
   getFontColor(backgroundColor: Color) {
-    const whiteRatio = Color.getContrastRatio(backgroundColor, Color.WHITE());
-    const blackRatio = Color.getContrastRatio(backgroundColor, Color.BLACK());
-    const fontColor = whiteRatio > blackRatio ? Color.WHITE() : Color.BLACK();
+    const whiteRatio = Color.getContrastRatio(backgroundColor, Color.WHITE);
+    const blackRatio = Color.getContrastRatio(backgroundColor, Color.BLACK);
+    const fontColor = whiteRatio > blackRatio ? Color.WHITE : Color.BLACK;
 
     return fontColor;
   }
