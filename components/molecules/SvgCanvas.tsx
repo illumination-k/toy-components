@@ -1,4 +1,4 @@
-import { PointerEvent, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { tw } from "twind";
 
 /**
@@ -98,7 +98,7 @@ const Path = ({ line }: { line: Line }) => {
       fill="none"
       strokeLinecap="round"
       strokeLinejoin="round"
-      stroke="black"
+      stroke="red"
       strokeWidth={4}
     />
   );
@@ -109,18 +109,35 @@ const SvgCanvas = ({}) => {
   const isDrawing = useRef(false);
   const [lines, setLines] = useState<Line[]>([]);
 
-  const relativeCoordinatesForEvent = (event: PointerEvent<HTMLDivElement>) => {
+  // const relativeCoordinatesForEvent = (event: PointerEvent<HTMLDivElement>) => {
+  //   const boundingRect = ref.current?.getBoundingClientRect();
+  //   return {
+  //     x: event.clientX - boundingRect!.left,
+  //     y: event.clientY - boundingRect!.top,
+  //   } as Point;
+  // };
+
+  const relativeCoordinatesForEvent = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     const boundingRect = ref.current?.getBoundingClientRect();
-    return {
-      x: event.clientX - boundingRect!.left,
-      y: event.clientY - boundingRect!.top,
-    } as Point;
+    if (event.nativeEvent instanceof MouseEvent) {
+      return {
+        x: event.nativeEvent.clientX - boundingRect!.left,
+        y: event.nativeEvent.clientY - boundingRect!.top,
+      } as Point;
+    } else if (event.nativeEvent instanceof TouchEvent) {
+      return {
+        x: event.nativeEvent.touches[0].clientX - boundingRect!.left,
+        y: event.nativeEvent.touches[0].clientY - boundingRect!.top,
+      } as Point;
+    } else {
+      throw "Unreacheable";
+    }
   };
 
-  const handleStart = (event: PointerEvent<HTMLDivElement>) => {
-    if (!event.isPrimary) {
-      return;
-    }
+  const handleStart = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    // if (!event.isPrimary) {
+    //   return;
+    // }
 
     event.preventDefault();
     isDrawing.current = true;
@@ -130,10 +147,10 @@ const SvgCanvas = ({}) => {
     setLines([...lines, [point]]);
   };
 
-  const handleMove = (event: PointerEvent<HTMLDivElement>) => {
-    if (!event.isPrimary) {
-      return;
-    }
+  const handleMove = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    // if (!event.isPrimary) {
+    //   return;
+    // }
 
     if (!isDrawing.current) {
       return;
@@ -151,22 +168,18 @@ const SvgCanvas = ({}) => {
     isDrawing.current = false;
   };
 
-  useEffect(() => {
-    document.addEventListener("pointerup", handleStop);
-    return () => {
-      document.removeEventListener("pointerup", handleStop);
-    };
-  }, [handleStop]);
-
   return (
     <div
       ref={ref}
       className={tw("ring ring-black")}
-      onPointerUp={() => {
-        handleStop();
-      }}
-      onPointerDown={(event) => handleStart(event)}
-      onPointerMove={(event) => handleMove(event)}
+      onMouseDown={handleStart}
+      onMouseMove={handleMove}
+      onMouseUp={handleStop}
+      onMouseLeave={handleStop}
+      onTouchStart={handleStart}
+      onTouchMove={handleMove}
+      onTouchEnd={handleStop}
+      onTouchCancel={handleStop}
     >
       <svg
         version="1.1"
