@@ -98,8 +98,8 @@ const Path = ({ line }: { line: Line }) => {
       fill="none"
       strokeLinecap="round"
       strokeLinejoin="round"
-      stroke="#0000ff"
-      strokeWidth={10}
+      stroke="red"
+      strokeWidth={4}
     />
   );
 };
@@ -118,6 +118,10 @@ const SvgCanvas = ({}) => {
   };
 
   const handleStart = (event: PointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary) {
+      return;
+    }
+
     event.preventDefault();
     isDrawing.current = true;
 
@@ -127,6 +131,10 @@ const SvgCanvas = ({}) => {
   };
 
   const handleMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary) {
+      return;
+    }
+
     if (!isDrawing.current) {
       return;
     }
