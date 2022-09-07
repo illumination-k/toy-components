@@ -97,6 +97,7 @@ const Path = ({ line }: { line: Line }) => {
       d={d}
       fill="none"
       strokeLinecap="round"
+      strokeLinejoin="round"
       stroke="#0000ff"
       strokeWidth={10}
     />
@@ -117,6 +118,7 @@ const SvgCanvas = ({}) => {
   };
 
   const handleStart = (event: PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
     isDrawing.current = true;
 
     const point = relativeCoordinatesForEvent(event);
@@ -128,7 +130,7 @@ const SvgCanvas = ({}) => {
     if (!isDrawing.current) {
       return;
     }
-
+    event.preventDefault();
     const point = relativeCoordinatesForEvent(event);
 
     setLines((prev) => {
