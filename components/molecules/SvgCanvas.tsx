@@ -98,7 +98,7 @@ const Path = ({ line }: { line: Line }) => {
       fill="none"
       strokeLinecap="round"
       strokeLinejoin="round"
-      stroke="red"
+      stroke="black"
       strokeWidth={4}
     />
   );
@@ -174,6 +174,7 @@ const SvgCanvas = ({}) => {
         xmlns="http://www.w3.org/2000/svg"
         xmlnsXlink="http://www.w3.org/1999/xlink"
         style={{
+          touchAction: "none",
           width: "100%",
           height: "100%",
         }}
