@@ -1,5 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState, useTransition } from "react";
+import { BsArrowLeft, BsArrowRight, BsDownload, BsFillEraserFill, BsFillPencilFill } from "react-icons/bs";
 import { tw } from "twind";
+import Color from "../../libs/color";
+import IconButton from "../atoms/IconButton";
 
 /**
  * Please see
@@ -13,7 +16,11 @@ type Point = {
   y: number;
 };
 
-type Line = Point[];
+type Line = {
+  points: Point[];
+  strokeColor: Color;
+  strokeWidth: number;
+};
 
 type ControlPoints = {
   current: Point;
@@ -87,7 +94,7 @@ const bezierCommand = (point: Point, i: number, a: Point[]): string => {
 };
 
 const Path = ({ line }: { line: Line }) => {
-  const d = line.reduce(
+  const d = line.points.reduce(
     (acc, point, i, a) => i === 0 ? `M ${point.x},${point.y}` : `${acc} ${bezierCommand(point, i, a)}`,
     "",
   );
@@ -98,103 +105,125 @@ const Path = ({ line }: { line: Line }) => {
       fill="none"
       strokeLinecap="round"
       strokeLinejoin="round"
-      stroke="red"
-      strokeWidth={4}
+      stroke={line.strokeColor.hexColor}
+      strokeWidth={line.strokeWidth}
     />
   );
+};
+
+type LineProperty = {
+  color: Color;
+  width: number;
 };
 
 const SvgCanvas = ({}) => {
   const ref = useRef<HTMLDivElement>(null);
   const isDrawing = useRef(false);
   const [lines, setLines] = useState<Line[]>([]);
-
-  // const relativeCoordinatesForEvent = (event: PointerEvent<HTMLDivElement>) => {
-  //   const boundingRect = ref.current?.getBoundingClientRect();
-  //   return {
-  //     x: event.clientX - boundingRect!.left,
-  //     y: event.clientY - boundingRect!.top,
-  //   } as Point;
-  // };
+  const [lineProperty, setLineProperty] = useState<LineProperty>({ color: Color.BLACK, width: 4 });
+  const [, startTransition] = useTransition();
 
   const relativeCoordinatesForEvent = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     const boundingRect = ref.current?.getBoundingClientRect();
+
+    if (!boundingRect) {
+      return { x: 0, y: 0 } as Point;
+    }
+
     if (event.nativeEvent instanceof MouseEvent) {
       return {
-        x: event.nativeEvent.clientX - boundingRect!.left,
-        y: event.nativeEvent.clientY - boundingRect!.top,
+        x: event.nativeEvent.clientX - boundingRect.left,
+        y: event.nativeEvent.clientY - boundingRect.top,
       } as Point;
     } else if (event.nativeEvent instanceof TouchEvent) {
       return {
-        x: event.nativeEvent.touches[0].clientX - boundingRect!.left,
-        y: event.nativeEvent.touches[0].clientY - boundingRect!.top,
+        x: event.nativeEvent.touches[0].clientX - boundingRect.left,
+        y: event.nativeEvent.touches[0].clientY - boundingRect.top,
       } as Point;
     } else {
       throw "Unreacheable";
     }
   };
 
+  // https://stackoverflow.com/questions/42101723/unable-to-preventdefault-inside-passive-event-listener
+  // event.cancelable for unable-to-preventdefault-inside-passive-event-listener
   const handleStart = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    // if (!event.isPrimary) {
-    //   return;
-    // }
-
-    event.preventDefault();
+    event.cancelable && event.preventDefault();
     isDrawing.current = true;
 
     const point = relativeCoordinatesForEvent(event);
 
-    setLines([...lines, [point]]);
+    setLines([...lines, { strokeColor: lineProperty.color, strokeWidth: lineProperty.width, points: [point] }]);
   };
 
   const handleMove = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    // if (!event.isPrimary) {
-    //   return;
-    // }
-
+    event.cancelable && event.preventDefault();
     if (!isDrawing.current) {
       return;
     }
-    event.preventDefault();
-    const point = relativeCoordinatesForEvent(event);
 
-    setLines((prev) => {
-      prev[prev.length - 1].push(point);
-      return [...prev];
+    const point = relativeCoordinatesForEvent(event);
+    startTransition(() => {
+      setLines((prev) => {
+        prev[prev.length - 1].points.push(point);
+        return [...prev];
+      });
     });
   };
 
-  const handleStop = () => {
+  const handleStop = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    event.cancelable && event.preventDefault();
     isDrawing.current = false;
   };
 
   return (
-    <div
-      ref={ref}
-      className={tw("ring ring-black")}
-      onMouseDown={handleStart}
-      onMouseMove={handleMove}
-      onMouseUp={handleStop}
-      onMouseLeave={handleStop}
-      onTouchStart={handleStart}
-      onTouchMove={handleMove}
-      onTouchEnd={handleStop}
-      onTouchCancel={handleStop}
-    >
-      <svg
-        version="1.1"
-        baseProfile="full"
-        xmlns="http://www.w3.org/2000/svg"
-        xmlnsXlink="http://www.w3.org/1999/xlink"
-        style={{
-          touchAction: "none",
-          width: "100%",
-          height: "100%",
-        }}
+    <Suspense fallback={"loading..."}>
+      {JSON.stringify(lineProperty)}
+      <div>
+        {[Color.BLACK, Color.RED, Color.BLUE].map((color, i) => (
+          <IconButton
+            key={i}
+            onClick={() => setLineProperty({ ...lineProperty, color })}
+            iconClassName={tw(`text-[${color.hexColor}]`)}
+          >
+            <BsFillPencilFill />
+          </IconButton>
+        ))}
+        <input
+          type="range"
+          min={1}
+          max={30}
+          value={lineProperty.width}
+          onChange={(e) => setLineProperty({ ...lineProperty, width: Number(e.target.value) })}
+        />
+      </div>
+
+      <div
+        ref={ref}
+        className={tw("ring ring-black h-96")}
+        onMouseDown={handleStart}
+        onMouseMove={handleMove}
+        onMouseUp={handleStop}
+        onMouseLeave={handleStop}
+        onTouchStart={handleStart}
+        onTouchMove={handleMove}
+        onTouchEnd={handleStop}
+        onTouchCancel={handleStop}
       >
-        {lines.map((line, i) => <Path key={i} line={line} />)}
-      </svg>
-    </div>
+        <svg
+          version="1.1"
+          baseProfile="full"
+          xmlns="http://www.w3.org/2000/svg"
+          xmlnsXlink="http://www.w3.org/1999/xlink"
+          style={{
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          {lines.map((line, i) => <Path key={i} line={line} />)}
+        </svg>
+      </div>
+    </Suspense>
   );
 };
 
