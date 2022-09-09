@@ -4,7 +4,8 @@ import { tw } from "twind";
 import Color from "../../../libs/color";
 import IconButton from "../../atoms/IconButton";
 
-import { EraserLine, Line, LineGroup, LineGroups, Point } from "./domains";
+import { DrawingMode, groupingLines, Line, Point } from "./domains";
+import Path from "./Path";
 
 /**
  * Please see
@@ -14,119 +15,23 @@ import { EraserLine, Line, LineGroup, LineGroups, Point } from "./domains";
  * - Eraser Impl: https://stackoverflow.com/questions/7751993/how-can-i-implement-eraser-function-in-svg
  */
 
-type ControlPoints = {
-  current: Point;
-  previous?: Point;
-  next?: Point;
-  reverse?: boolean;
-};
-
-const line = (pointA: Point, pointB: Point) => {
-  const lengthX = pointB.x - pointA.x;
-  const lengthY = pointB.y - pointA.y;
-
-  return {
-    length: Math.sqrt(lengthX ** 2 + lengthY ** 2),
-    angle: Math.atan2(lengthY, lengthX),
-  };
-};
-
-const controlPoint = (controlPoints: ControlPoints): [number, number] => {
-  const { current, next, previous, reverse } = controlPoints;
-
-  const p = previous || current;
-  const n = next || current;
-
-  const smoothing = 0.2;
-
-  const o = line(p, n);
-
-  const angle = o.angle + (reverse ? Math.PI : 0);
-  const length = o.length * smoothing;
-
-  const x = current.x + Math.cos(angle) * length;
-  const y = current.y + Math.sin(angle) * length;
-
-  return [x, y];
-};
-
-const bezierCommand = (point: Point, i: number, a: Point[]): string => {
-  let cpsX = null;
-  let cpsY = null;
-
-  switch (i) {
-    case 0:
-      [cpsX, cpsY] = controlPoint({
-        current: point,
-      });
-      break;
-    case 1:
-      [cpsX, cpsY] = controlPoint({
-        current: a[i - 1],
-        next: point,
-      });
-      break;
-    default:
-      [cpsX, cpsY] = controlPoint({
-        current: a[i - 1],
-        previous: a[i - 2],
-        next: point,
-      });
-      break;
-  }
-
-  const [cpeX, cpeY] = controlPoint({
-    current: point,
-    previous: a[i - 1],
-    next: a[i + 1],
-    reverse: true,
-  });
-
-  return `C ${cpsX},${cpsY} ${cpeX},${cpeY} ${point.x}, ${point.y}`;
-};
-
-type PathProps = {
-  id?: string;
-  points: Point[];
-  strokeColor: Color;
-  strokeWidth: number;
-};
-
-const Path = ({ id, points, strokeColor, strokeWidth }: PathProps) => {
-  const d = points.reduce(
-    (acc, point, i, a) => i === 0 ? `M ${point.x},${point.y}` : `${acc} ${bezierCommand(point, i, a)}`,
-    "",
-  );
-
-  return (
-    <path
-      d={d}
-      id={id}
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      stroke={strokeColor.hexColor}
-      strokeWidth={strokeWidth}
-    />
-  );
-};
-
 type LineProperty = {
   color: Color;
   width: number;
 };
 
-type PathGroup = {
-  eraserLine?: Line;
-  lines: Line[];
+export type SvgCanvasProps = {
+  className?: string;
 };
 
-const SvgCanvas = ({}) => {
+const SvgCanvas = ({ className }: SvgCanvasProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const isDrawing = useRef(false);
-  const drawingMode = useRef<"pen" | "eraser">("pen");
-  const [eraserLines, setEraserLine] = useState<Line[]>([]);
-  const [lineGroups, setLineGroups] = useState<LineGroups>(new LineGroups());
+  const drawingMode = useRef<DrawingMode>("pen");
+  const history = useRef<Line[]>([]);
+
+  const [lines, setLines] = useState<Line[]>([]);
+
   const [lineProperty, setLineProperty] = useState<LineProperty>({ color: Color.BLACK, width: 4 });
   const [, startTransition] = useTransition();
 
@@ -160,13 +65,12 @@ const SvgCanvas = ({}) => {
 
     const point = relativeCoordinatesForEvent(event);
 
-    setLineGroups((prev) => {
+    setLines((prev) => {
       if (drawingMode.current === "pen") {
-        prev.pushNewLine({ strokeColor: lineProperty.color, strokeWidth: lineProperty.width, points: [point] });
+        return [...prev, Line.newPenLine(lineProperty.color, lineProperty.width, [point])];
       } else {
-        prev.pushNewEraserLine({ strokeWidth: lineProperty.width, points: [point] });
+        return [...prev, Line.newEraserLine(lineProperty.width, [point])];
       }
-      return prev.clone();
     });
   };
 
@@ -179,14 +83,10 @@ const SvgCanvas = ({}) => {
 
     const point = relativeCoordinatesForEvent(event);
     startTransition(() => {
-      setLineGroups((prev) => {
-        if (drawingMode.current === "pen") {
-          prev.pushLinePoint(point);
-        } else {
-          prev.pushEraserPoint(point);
-        }
+      setLines((prev) => {
+        prev[prev.length - 1].pushPoint(point);
 
-        return prev.clone();
+        return [...prev];
       });
     });
   };
@@ -194,7 +94,28 @@ const SvgCanvas = ({}) => {
   const handleStop = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     event.cancelable && event.preventDefault();
     isDrawing.current = false;
+    history.current = [];
   };
+
+  const undo = () => {
+    const line = lines.pop();
+
+    if (line) {
+      history.current.push(line);
+      setLines([...lines]);
+    }
+  };
+
+  const redo = () => {
+    const line = history.current.pop();
+
+    if (line) {
+      setLines([...lines, line]);
+    }
+  };
+
+  const lineGroups = groupingLines(lines);
+
   // line(e1, e2) -> line(e1, e2) -> eraser1 -> line (e2) -> eraser2 -> line
   return (
     <Suspense fallback={"loading..."}>
@@ -226,11 +147,17 @@ const SvgCanvas = ({}) => {
           value={lineProperty.width}
           onChange={(e) => setLineProperty({ ...lineProperty, width: Number(e.target.value) })}
         />
+        <IconButton onClick={undo}>
+          <BsArrowLeft />
+        </IconButton>
+        <IconButton onClick={redo}>
+          <BsArrowRight />
+        </IconButton>
       </div>
 
       <div
         ref={ref}
-        className={tw("ring ring-black h-96")}
+        className={tw(className)}
         onMouseDown={handleStart}
         onMouseMove={handleMove}
         onMouseUp={handleStop}
@@ -253,26 +180,26 @@ const SvgCanvas = ({}) => {
           <defs>
             <symbol>
               <rect id="mask-background" width="100%" height="100%" fill="#fff"></rect>
-              {lineGroups.lineGroups.map((lineGroup, i) => {
+              {lineGroups.map((lineGroup, i) => {
                 const id = `eraser-group-${i}`;
                 return (
                   <g id={id} key={id}>
                     {lineGroup.eraserLines.map((line, i) => {
-                      return <Path key={`eraser-line-${i}`} {...line} strokeColor={Color.BLACK} />;
+                      return <Path key={`eraser-line-${i}`} {...line.property} strokeColor={Color.BLACK} />;
                     })}
                   </g>
                 );
               })}
             </symbol>
           </defs>
-          {lineGroups.lineGroups.map((lineGroup, i) => {
+          {lineGroups.map((lineGroup, i) => {
             return (
               <>
                 <mask key={i} id={`mask-${i}`}>
                   <use href="#mask-background" />
                   {/* 自分のindexから最大まで */}
                   {Array.from(
-                    { length: lineGroups.lineGroups.length },
+                    { length: lineGroups.length },
                     (_, j) => j + i,
                   ).map((k) => {
                     return <use key={k} href={`#eraser-group-${k}`} />;
@@ -280,7 +207,7 @@ const SvgCanvas = ({}) => {
                 </mask>
                 <g key={i} mask={`url(#mask-${i})`}>
                   {lineGroup.lines.map((line, i) => {
-                    return <Path key={i} {...line} />;
+                    return <Path key={i} {...line.property} />;
                   })}
                 </g>
               </>
@@ -288,7 +215,6 @@ const SvgCanvas = ({}) => {
           })}
         </svg>
       </div>
-      {JSON.stringify(lineGroups)}
     </Suspense>
   );
 };
