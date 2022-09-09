@@ -40,7 +40,7 @@ export default class Color {
   }
 
   static get GREEN() {
-    return new Color(0, 255, 255);
+    return new Color(0, 0, 255);
   }
 
   get hexColor() {

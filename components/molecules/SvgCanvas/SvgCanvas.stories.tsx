@@ -1,8 +1,7 @@
 import { ComponentMeta, ComponentStory } from "@storybook/react";
 import React from "react";
-import { Layer, Rect } from "react-konva";
 
-import SvgCanvas from "./SvgCanvas";
+import SvgCanvas from ".";
 
 // More on default export: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 export default {
